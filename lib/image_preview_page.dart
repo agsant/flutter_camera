@@ -38,7 +38,12 @@ class ImagePreviewPage extends StatelessWidget {
                   ),
                   _getWrappedButton(
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async {
+                        File file = File(imagePath);
+                        file.delete().then((_) {
+                          Navigator.pop(context);
+                        });
+                      },
                       child: Text(
                         "Recapture",
                         style: TextStyle(color: Colors.black),
