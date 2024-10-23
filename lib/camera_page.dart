@@ -8,8 +8,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'main.dart';
 
 class CameraPage extends StatefulWidget {
+  const CameraPage({super.key});
+
   @override
-  _CameraPageState createState() => _CameraPageState();
+  State<CameraPage> createState() => _CameraPageState();
 }
 
 class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
@@ -43,133 +45,6 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   void dispose() {
     controller?.dispose();
     super.dispose();
-  }
-
-  _onCameraSelected(CameraDescription cameraDescription) async {
-    final previousCameraController = controller;
-
-    final CameraController cameraController = CameraController(
-      cameraDescription,
-      ResolutionPreset.high,
-      imageFormatGroup: ImageFormatGroup.jpeg,
-    );
-
-    await previousCameraController?.dispose();
-
-    if (mounted) {
-      setState(() {
-        controller = cameraController;
-      });
-    }
-
-    cameraController.addListener(() {
-      if (mounted) setState(() {});
-    });
-
-    try {
-      await cameraController.initialize();
-    } on CameraException catch (e) {
-      print('Error initializing camera: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _isCameraInitialized = controller!.value.isInitialized;
-      });
-    }
-  }
-
-  _checkPermission() async {
-    await Permission.camera.request();
-    var status = await Permission.camera.status;
-
-    if (status.isGranted) {
-      setState(() {
-        _isCameraPermissionGranted = true;
-      });
-      _onCameraSelected(cameras[0]);
-      // refreshAlreadyCapturedImages();
-    }
-  }
-
-  refreshAlreadyCapturedImages() async {
-    final directory = await getApplicationDocumentsDirectory();
-    List<FileSystemEntity> fileList = await directory.list().toList();
-    allFileList.clear();
-    List<Map<int, dynamic>> fileNames = [];
-
-    fileList.forEach((file) {
-      if (file.path.contains('.jpg')) {
-        allFileList.add(File(file.path));
-
-        String name = file.path.split('/').last.split('.').first;
-        fileNames.add({0: int.parse(name), 1: file.path.split('/').last});
-      }
-    });
-
-    if (fileNames.isNotEmpty) {
-      final recentFile =
-          fileNames.reduce((curr, next) => curr[0] > next[0] ? curr : next);
-      String recentFileName = recentFile[1];
-      // _imageFile = File('${directory.path}/$recentFileName');
-
-      setState(() {});
-    }
-  }
-
-  void onViewFinderTap(TapDownDetails details, BoxConstraints constraints) {
-    if (controller == null) {
-      return;
-    }
-
-    final offset = Offset(
-      details.localPosition.dx / constraints.maxWidth,
-      details.localPosition.dy / constraints.maxHeight,
-    );
-    controller!.setExposurePoint(offset);
-    controller!.setFocusPoint(offset);
-  }
-
-  Future<XFile?> takePicture() async {
-    final CameraController? cameraController = controller;
-
-    if (cameraController!.value.isTakingPicture) {
-      // A capture is already pending, do nothing.
-      return null;
-    }
-
-    try {
-      XFile file = await cameraController.takePicture();
-      return file;
-    } on CameraException catch (e) {
-      print('Error occured while taking picture: $e');
-      return null;
-    }
-  }
-
-  _onTapCapture() async {
-    XFile? rawImage = await takePicture();
-    File imageFile = File(rawImage!.path);
-
-    int currentUnix = DateTime.now().millisecondsSinceEpoch;
-
-    final directory = await getApplicationDocumentsDirectory();
-
-    String fileFormat = imageFile.path.split('.').last;
-
-    print(fileFormat);
-
-    await imageFile.copy(
-      '${directory.path}/$currentUnix.$fileFormat',
-    );
-
-    // refreshAlreadyCapturedImages();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImagePreviewPage(imagePath: imageFile.path),
-      ),
-    );
   }
 
   @override
@@ -280,6 +155,133 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
           ),
         ),
       ],
+    );
+  }
+
+  _onCameraSelected(CameraDescription cameraDescription) async {
+    final previousCameraController = controller;
+
+    final CameraController cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.high,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+
+    await previousCameraController?.dispose();
+
+    if (mounted) {
+      setState(() {
+        controller = cameraController;
+      });
+    }
+
+    cameraController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
+    try {
+      await cameraController.initialize();
+    } on CameraException catch (e) {
+      print('Error initializing camera: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isCameraInitialized = controller!.value.isInitialized;
+      });
+    }
+  }
+
+  _checkPermission() async {
+    await Permission.camera.request();
+    var status = await Permission.camera.status;
+
+    if (status.isGranted) {
+      setState(() {
+        _isCameraPermissionGranted = true;
+      });
+      _onCameraSelected(cameras[0]);
+      // refreshAlreadyCapturedImages();
+    }
+  }
+
+  Future<void> refreshAlreadyCapturedImages() async {
+    final directory = await getApplicationDocumentsDirectory();
+    List<FileSystemEntity> fileList = await directory.list().toList();
+    allFileList.clear();
+    List<Map<int, dynamic>> fileNames = [];
+
+    fileList.forEach((file) {
+      if (file.path.contains('.jpg')) {
+        allFileList.add(File(file.path));
+
+        String name = file.path.split('/').last.split('.').first;
+        fileNames.add({0: int.parse(name), 1: file.path.split('/').last});
+      }
+    });
+
+    if (fileNames.isNotEmpty) {
+      final recentFile =
+          fileNames.reduce((curr, next) => curr[0] > next[0] ? curr : next);
+      String recentFileName = recentFile[1];
+      // _imageFile = File('${directory.path}/$recentFileName');
+
+      setState(() {});
+    }
+  }
+
+  void onViewFinderTap(TapDownDetails details, BoxConstraints constraints) {
+    if (controller == null) {
+      return;
+    }
+
+    final offset = Offset(
+      details.localPosition.dx / constraints.maxWidth,
+      details.localPosition.dy / constraints.maxHeight,
+    );
+    controller!.setExposurePoint(offset);
+    controller!.setFocusPoint(offset);
+  }
+
+  Future<XFile?> takePicture() async {
+    final CameraController? cameraController = controller;
+
+    if (cameraController!.value.isTakingPicture) {
+      // A capture is already pending, do nothing.
+      return null;
+    }
+
+    try {
+      XFile file = await cameraController.takePicture();
+      return file;
+    } on CameraException catch (e) {
+      print('Error occured while taking picture: $e');
+      return null;
+    }
+  }
+
+  _onTapCapture() async {
+    XFile? rawImage = await takePicture();
+    File imageFile = File(rawImage!.path);
+
+    int currentUnix = DateTime.now().millisecondsSinceEpoch;
+
+    final directory = await getApplicationDocumentsDirectory();
+
+    String fileFormat = imageFile.path.split('.').last;
+
+    print(fileFormat);
+
+    await imageFile.copy(
+      '${directory.path}/$currentUnix.$fileFormat',
+    );
+
+    // refreshAlreadyCapturedImages();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImagePreviewPage(imagePath: imageFile.path),
+      ),
     );
   }
 }
